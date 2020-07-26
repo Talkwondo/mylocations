@@ -5,6 +5,7 @@ import Toolbar from './Toolbar';
 import {connect} from 'react-redux';
 import {actionCategory} from '../Actions/actions';
 import AsyncStorage from '@react-native-community/async-storage';
+import PropTypes from 'prop-types';
 
 const mapStateToProps = (state) => {
   return {
@@ -73,3 +74,7 @@ const styles = StyleSheet.create({
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(Home);
+
+Home.propTypes = {
+  categories: PropTypes.array.isRequired,
+};

@@ -1,16 +1,10 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Pressable,
-  Animated,
-} from 'react-native';
+import {View, Text, Dimensions, Pressable, Animated} from 'react-native';
 import {connect} from 'react-redux';
 import {selectedCategory, unSelectedCategory} from '../Actions/actions';
+import PropTypes from 'prop-types';
+import {cardStyle} from '../Styles/index';
 
-const heightScreen = Dimensions.get('screen').height;
 const widthScreen = Dimensions.get('screen').width;
 
 const mapDispatchToProps = (dispatch) => {
@@ -38,7 +32,7 @@ const Card = (props) => {
       : {backgroundColor: 'transparent'};
   };
 
-  const handleClick = (id) => {
+  const handleClick = (id) => () => {
     !props.selected
       ? props.onSelectedCategory(id)
       : props.onUnSelectedCategory();
@@ -58,11 +52,11 @@ const Card = (props) => {
 
   return loading ? (
     <Animated.View style={{transform: [{translateX: Animation}]}}>
-      <View style={[styles.border, setClass()]}>
-        <Pressable onPress={() => handleClick(props.id)}>
-          <View style={styles.container}>
-            <View style={styles.row}>
-              <Text style={styles.categoryName}>{props.category}</Text>
+      <View style={[cardStyle.border, setClass()]}>
+        <Pressable onPress={handleClick(props.id)}>
+          <View style={cardStyle.container}>
+            <View style={cardStyle.row}>
+              <Text style={cardStyle.categoryName}>{props.category}</Text>
             </View>
           </View>
         </Pressable>
@@ -71,29 +65,15 @@ const Card = (props) => {
   ) : null;
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    height: heightScreen * 0.1,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginLeft: 20,
-    marginRight: 20,
-    marginBottom: 5,
-  },
-  categoryName: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  border: {
-    borderWidth: 1,
-    borderColor: '#00E5D1',
-  },
-});
-
 export default connect(mapStateToProps, mapDispatchToProps)(Card);
+
+Card.propTypes = {
+  category: PropTypes.string.isRequired,
+  id: PropTypes.number.isRequired,
+  selected: PropTypes.oneOfType([
+    PropTypes.string.isRequired,
+    PropTypes.oneOf([null]).isRequired,
+  ]),
+  onSelectedCategory: PropTypes.func.isRequired,
+  onUnSelectedCategory: PropTypes.func.isRequired,
+};
