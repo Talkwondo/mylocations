@@ -45,12 +45,20 @@ const Home = (props) => {
     })();
   }, [props.categories]);
 
-  const renderItem = ({item, index}) => <Card category={item} id={index} />;
+  const renderItem = ({item, index}) => <Card cardName={item} id={index} />;
 
   return (
     <>
       <View style={styles.container}>
-        <Toolbar />
+        <Toolbar
+          page="category"
+          label="Categories"
+          title="Category List"
+          textInputTitle="Add Category"
+          editTitleInput="Edit Category..."
+          editTitle="Edit Category"
+          deleteButtonText="Delete Category"
+        />
         <FlatList
           style={styles.list}
           initialNumToRender={5}
@@ -70,6 +78,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
     justifyContent: 'space-between',
+    backgroundColor: '#2d2d2d',
   },
 });
 

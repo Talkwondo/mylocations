@@ -1,5 +1,5 @@
 import {
-  CHANGE_TEXT,
+  CHANGE_TEXT_CATEGORY,
   ADD_CATEGORY,
   REMOVE_CATEGORY,
   UPDATE_CATEGORY,
@@ -16,7 +16,7 @@ const INITIAL_STATE = {
 
 export const changeText = (state = INITIAL_STATE, action = {}) => {
   switch (action.type) {
-    case CHANGE_TEXT:
+    case CHANGE_TEXT_CATEGORY:
       return {...state, addText: action.payload};
     default:
       return state;

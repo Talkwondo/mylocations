@@ -1,22 +1,34 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, {useState, useEffect} from 'react';
 import {View, Text, Pressable, TextInput, Alert} from 'react-native';
+import {Picker} from '@react-native-community/picker';
 import PropTypes from 'prop-types';
+import Filter from '../Components/Filter';
 import {connect} from 'react-redux';
 import {
   actionCategory,
   changeText,
   unSelectedCategory,
+  changeTextLocation,
+  actionLocation,
+  unSelectedLocation,
 } from '../Actions/actions';
 import {toolbarStyle} from '../Styles/index';
 
 const mapDispatchToProps = (dispatch) => {
   return {
+    onChangeTextLocation: (text) => dispatch(changeTextLocation(text)),
+    onAddLocation: (location) => dispatch(actionLocation(location, 'add')),
     onChangeText: (text) => dispatch(changeText(text)),
     onAddCategory: (category) => dispatch(actionCategory(category, 'add')),
-    remove: (index) => dispatch(actionCategory(index, 'remove')),
-    rename: (name, index) => dispatch(actionCategory(index, 'rename', name)),
+    removeCategory: (index) => dispatch(actionCategory(index, 'remove')),
+    removeLocation: (index) => dispatch(actionLocation(index, 'remove')),
+    renameCategory: (name, index) =>
+      dispatch(actionCategory(index, 'rename', name)),
+    renameLocation: (name, index) =>
+      dispatch(actionLocation(index, 'rename', name)),
     onUnSelectedCategory: () => dispatch(unSelectedCategory()),
+    onUnSelectedLocation: () => dispatch(unSelectedLocation()),
   };
 };
 
@@ -24,56 +36,130 @@ const mapStateToProps = (state) => {
   return {
     addText: state.changeText.addText,
     selected: state.selectCategory.selected,
+    addTextLocation: state.changeTextLocation.addTextLocation,
+    categories: state.changeCategory.categories,
+    selectedLocation: state.selectLocation.selectedLocation,
   };
 };
 
 const Toolbar = (props) => {
   const [edit, setEdit] = useState(false);
+  const [category, insertCategory] = useState(null);
   useEffect(() => {
     setEdit(false);
-  }, [props.selected]);
+  }, [props.selected, props.selectedLocation]);
 
   const validateInput = () => {
-    if (props.addText === '') {
+    if (
+      (props.page === 'category' && props.addText === '') ||
+      (props.page === 'location' && props.addTextLocation === '')
+    ) {
       return Alert.alert(
-        'Category name missing',
-        'Please insert category name',
+        `${props.page} name missing`,
+        `Please insert ${props.page} name`,
+      );
+    } else if (props.page === 'location' && category === null) {
+      return Alert.alert(
+        'Location must have category',
+        'Please pick category from the list or add one',
       );
     } else {
-      props.onAddCategory(props.addText);
-      props.onChangeText('');
+      if (props.page === 'category') {
+        props.onAddCategory(props.addText);
+        props.onChangeText('');
+      } else {
+        props.onAddLocation({
+          name: props.addTextLocation,
+          category: category,
+        });
+        props.onChangeTextLocation('');
+      }
     }
   };
+
+  const picker = () =>
+    props.categories.map((item, index) => (
+      <Picker.Item key={index} label={item} value={item} />
+    ));
+
+  const addCategory = () => {
+    return props.page === 'location' ? (
+      <View style={[toolbarStyle.row, {marginTop: 5}]}>
+        {!props.filter ? (
+          <Picker
+            selectedValue={category}
+            style={toolbarStyle.picker}
+            itemStyle={{color: 'white', height: 100}}
+            onValueChange={(itemValue) => insertCategory(itemValue)}>
+            <Picker.Item
+              key={'pickerdefault'}
+              label={'Pick from the list'}
+              value={null}
+            />
+            {picker()}
+          </Picker>
+        ) : (
+          <Filter
+            onValueChange={props.setFilterText}
+            value={props.filterText}
+          />
+        )}
+      </View>
+    ) : null;
+  };
+
+  const handleValue = () =>
+    props.page === 'category' ? props.addText : props.addTextLocation;
+
+  const handleChangeText = (text) =>
+    props.page === 'category'
+      ? props.onChangeText(text)
+      : props.onChangeTextLocation(text);
+
   const onRemoveCategory = () => {
-    props.remove(Number(props.selected));
-    props.onUnSelectedCategory();
-  };
-  const changeName = () => {
-    if (props.addText === '') {
-      return Alert.alert(
-        'Category name missing',
-        'Please insert category name',
-      );
-    } else {
-      props.rename(props.addText, Number(props.selected));
+    if (props.page === 'category') {
+      props.removeCategory(Number(props.selected));
       props.onUnSelectedCategory();
-      props.onChangeText('');
+    } else {
+      props.removeLocation(props.selectedLocation);
+      props.onUnSelectedLocation();
     }
   };
+
+  const changeName = () => {
+    if (
+      (props.page === 'category' && props.addText === '') ||
+      (props.page === 'location' && props.addTextLocation === '')
+    ) {
+      return Alert.alert(
+        `${props.page} name missing`,
+        `Please insert ${props.page} name`,
+      );
+    } else if (props.page === 'category') {
+      props.renameCategory(props.addText, Number(props.selected));
+      props.onChangeText('');
+      props.onUnSelectedCategory();
+    } else {
+      props.renameLocation(props.addTextLocation, props.selectedLocation);
+      props.onChangeTextLocation('');
+      props.onUnSelectedLocation();
+    }
+  };
+
   if (edit) {
     return (
       <View style={toolbarStyle.container}>
-        <Text style={toolbarStyle.title}>Categories</Text>
+        <Text style={toolbarStyle.title}>{props.label}</Text>
         <View style={toolbarStyle.column}>
           <View style={toolbarStyle.row}>
             <TextInput
               style={toolbarStyle.input}
-              placeholder={'Edit Category...'}
+              placeholder={props.editTitleInput}
               placeholderTextColor="grey"
               autoCorrect={false}
-              value={props.addText}
+              value={handleValue()}
               autoCapitalize="none"
-              onChangeText={props.onChangeText}
+              onChangeText={handleChangeText}
               onSubmitEditing={changeName}
             />
             <Pressable onPress={changeName}>
@@ -82,18 +168,19 @@ const Toolbar = (props) => {
               </View>
             </Pressable>
           </View>
+          {addCategory()}
           <View style={toolbarStyle.row}>
             <View style={toolbarStyle.header}>
-              <Text style={toolbarStyle.headerText}>Category List</Text>
+              <Text style={toolbarStyle.headerText}>{props.title}</Text>
             </View>
           </View>
         </View>
       </View>
     );
   }
-  return props.selected ? (
+  return props.selected || props.selectedLocation ? (
     <View style={toolbarStyle.container}>
-      <Text style={toolbarStyle.title}>Edit Category</Text>
+      <Text style={toolbarStyle.title}>{props.editTitle}</Text>
       <View style={toolbarStyle.column}>
         <View
           style={[
@@ -107,30 +194,33 @@ const Toolbar = (props) => {
           </Pressable>
           <Pressable onPress={onRemoveCategory}>
             <View style={toolbarStyle.buttonRed}>
-              <Text style={toolbarStyle.buttonText}>Delete Category</Text>
+              <Text style={toolbarStyle.buttonText}>
+                {props.deleteButtonText}
+              </Text>
             </View>
           </Pressable>
         </View>
+        {addCategory()}
         <View style={toolbarStyle.row}>
           <View style={toolbarStyle.header}>
-            <Text style={toolbarStyle.headerText}>Category List</Text>
+            <Text style={toolbarStyle.headerText}>{props.title}</Text>
           </View>
         </View>
       </View>
     </View>
   ) : (
     <View style={toolbarStyle.container}>
-      <Text style={toolbarStyle.title}>Categories</Text>
+      <Text style={toolbarStyle.title}>{props.label}</Text>
       <View style={toolbarStyle.column}>
         <View style={toolbarStyle.row}>
           <TextInput
             style={toolbarStyle.input}
-            placeholder={'Add Category...'}
+            placeholder={props.textInputTitle}
             placeholderTextColor="grey"
             autoCorrect={false}
-            value={props.addText}
+            value={handleValue()}
             autoCapitalize="none"
-            onChangeText={props.onChangeText}
+            onChangeText={handleChangeText}
             onSubmitEditing={validateInput}
           />
           <Pressable style={toolbarStyle.button} onPress={validateInput}>
@@ -139,9 +229,10 @@ const Toolbar = (props) => {
             </View>
           </Pressable>
         </View>
+        {addCategory()}
         <View style={toolbarStyle.row}>
           <View style={toolbarStyle.header}>
-            <Text style={toolbarStyle.headerText}>Category List</Text>
+            <Text style={toolbarStyle.headerText}>{props.title}</Text>
           </View>
         </View>
       </View>
@@ -153,12 +244,16 @@ export default connect(mapStateToProps, mapDispatchToProps)(Toolbar);
 
 Toolbar.propTypes = {
   addText: PropTypes.string.isRequired,
+  addTextLocation: PropTypes.string.isRequired,
   selected: PropTypes.oneOfType([
     PropTypes.string.isRequired,
     PropTypes.oneOf([null]).isRequired,
   ]),
-  remove: PropTypes.func.isRequired,
-  rename: PropTypes.func.isRequired,
+  removeCategory: PropTypes.func.isRequired,
+  removeLocation: PropTypes.func.isRequired,
+  renameCategory: PropTypes.func.isRequired,
+  renameLocation: PropTypes.func.isRequired,
+  onChangeTextLocation: PropTypes.func.isRequired,
   onChangeText: PropTypes.func.isRequired,
   onUnSelectedCategory: PropTypes.func.isRequired,
   onAddCategory: PropTypes.func.isRequired,
